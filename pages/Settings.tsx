@@ -99,7 +99,7 @@ const Settings: React.FC = () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `zenith-backup-${new Date().toISOString().split('T')[0]}.db`;
+            a.download = `lrgp-backup-${new Date().toISOString().split('T')[0]}.db`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

@@ -9,7 +9,7 @@ let _db: any = null;
 let isInitialized = false;
 
 // --- IndexedDB Helpers ---
-const IDB_NAME = 'zenith_sqlite_db';
+const IDB_NAME = 'lrgp_sqlite_db';
 const IDB_STORE = 'db_file_store';
 const IDB_KEY = 'db_file';
 
@@ -53,7 +53,7 @@ const init = async () => {
             console.log("Creating new database...");
             _db = new SQL.Database();
             createTables();
-            seedDatabase();
+            // seedDatabase();
             await saveDbToIdb(_db);
         }
         isInitialized = true;
@@ -75,37 +75,37 @@ const createTables = () => {
   `);
 };
 
-const seedDatabase = () => {
-    console.log("Seeding database with initial data...");
-    _db.exec("BEGIN TRANSACTION;");
-    try {
-        _db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(['companyDetails', JSON.stringify(DUMMY_COMPANY_DETAILS)]);
-        _db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(['invoiceSettings', JSON.stringify(DUMMY_INVOICE_SETTINGS)]);
+// const seedDatabase = () => {
+//     console.log("Seeding database with initial data...");
+//     _db.exec("BEGIN TRANSACTION;");
+//     try {
+//         _db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(['companyDetails', JSON.stringify(DUMMY_COMPANY_DETAILS)]);
+//         _db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(['invoiceSettings', JSON.stringify(DUMMY_INVOICE_SETTINGS)]);
 
-        const productStmt = _db.prepare("INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-        DUMMY_PRODUCTS.forEach(p => productStmt.run([p.id, p.name, p.sku, p.hsnCode, p.category, p.salePrice, p.purchasePrice, p.taxRate, p.stock, p.reorderPoint, p.isService ? 1 : 0]));
+//         const productStmt = _db.prepare("INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+//         DUMMY_PRODUCTS.forEach(p => productStmt.run([p.id, p.name, p.sku, p.hsnCode, p.category, p.salePrice, p.purchasePrice, p.taxRate, p.stock, p.reorderPoint, p.isService ? 1 : 0]));
         
-        const customerStmt = _db.prepare("INSERT INTO customers VALUES (?,?,?,?,?,?,?)");
-        DUMMY_CUSTOMERS.forEach(c => customerStmt.run([c.id, c.name, c.email, c.phone, JSON.stringify(c.billingAddress), JSON.stringify(c.shippingAddress), c.gstin]));
+//         const customerStmt = _db.prepare("INSERT INTO customers VALUES (?,?,?,?,?,?,?)");
+//         DUMMY_CUSTOMERS.forEach(c => customerStmt.run([c.id, c.name, c.email, c.phone, JSON.stringify(c.billingAddress), JSON.stringify(c.shippingAddress), c.gstin]));
         
-        const supplierStmt = _db.prepare("INSERT INTO suppliers VALUES (?,?,?,?,?,?)");
-        DUMMY_SUPPLIERS.forEach(s => supplierStmt.run([s.id, s.name, s.email, s.phone, JSON.stringify(s.address), s.gstin]));
+//         const supplierStmt = _db.prepare("INSERT INTO suppliers VALUES (?,?,?,?,?,?)");
+//         DUMMY_SUPPLIERS.forEach(s => supplierStmt.run([s.id, s.name, s.email, s.phone, JSON.stringify(s.address), s.gstin]));
 
-        const salesStmt = _db.prepare("INSERT INTO sales_invoices VALUES (?,?,?,?,?,?,?,?)");
-        DUMMY_SALES_INVOICES.forEach(i => salesStmt.run([i.id, i.invoiceNumber, i.customerId, i.invoiceDate, i.dueDate, JSON.stringify(i.items), i.status, i.amountPaid || 0]));
+//         const salesStmt = _db.prepare("INSERT INTO sales_invoices VALUES (?,?,?,?,?,?,?,?)");
+//         DUMMY_SALES_INVOICES.forEach(i => salesStmt.run([i.id, i.invoiceNumber, i.customerId, i.invoiceDate, i.dueDate, JSON.stringify(i.items), i.status, i.amountPaid || 0]));
         
-        const quoteStmt = _db.prepare("INSERT INTO quotations VALUES (?,?,?,?,?,?,?)");
-        DUMMY_QUOTATIONS.forEach(q => quoteStmt.run([q.id, q.quotationNumber, q.customerId, q.quoteDate, q.expiryDate, JSON.stringify(q.items), q.status]));
+//         const quoteStmt = _db.prepare("INSERT INTO quotations VALUES (?,?,?,?,?,?,?)");
+//         DUMMY_QUOTATIONS.forEach(q => quoteStmt.run([q.id, q.quotationNumber, q.customerId, q.quoteDate, q.expiryDate, JSON.stringify(q.items), q.status]));
 
-        const purchaseStmt = _db.prepare("INSERT INTO purchase_invoices VALUES (?,?,?,?,?,?,?)");
-        DUMMY_PURCHASE_INVOICES.forEach(p => purchaseStmt.run([p.id, p.invoiceNumber, p.supplierId, p.purchaseDate, JSON.stringify(p.items), p.status, p.amountPaid || 0]));
+//         const purchaseStmt = _db.prepare("INSERT INTO purchase_invoices VALUES (?,?,?,?,?,?,?)");
+//         DUMMY_PURCHASE_INVOICES.forEach(p => purchaseStmt.run([p.id, p.invoiceNumber, p.supplierId, p.purchaseDate, JSON.stringify(p.items), p.status, p.amountPaid || 0]));
 
-        _db.exec("COMMIT;");
-    } catch (e) {
-        console.error("Seeding failed:", e);
-        _db.exec("ROLLBACK;");
-    }
-};
+//         _db.exec("COMMIT;");
+//     } catch (e) {
+//         console.error("Seeding failed:", e);
+//         _db.exec("ROLLBACK;");
+//     }
+// };
 
 const parseJsonFields = (obj: any, fields: string[]) => {
     if (!obj) return obj;

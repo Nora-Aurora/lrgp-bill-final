@@ -18,3 +18,11 @@ View your app in AI Studio: https://ai.studio/apps/drive/1lJxJIks-XbGodSmY_5nnKn
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+
+npm run tauri:build
+npm run tauri:dev
+npm run build && npm run tauri:build
+
+Artifacts:
+App: src-tauri/target/release/bundle/macos/LRGP Billing.app
