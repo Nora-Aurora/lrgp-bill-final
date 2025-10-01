@@ -54,6 +54,37 @@ const Settings: React.FC = () => {
         }
     };
 
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!settings) return;
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+            const dataUrl = reader.result as string;
+            // Update local state for immediate preview
+            setSettings(prev => ({
+                ...prev!,
+                companyDetails: {
+                    ...prev!.companyDetails,
+                    logoUrl: dataUrl,
+                }
+            }));
+            // Persist immediately so it survives navigation
+            try {
+                await api.updateSettings({
+                    companyDetails: {
+                        ...settings.companyDetails,
+                        logoUrl: dataUrl,
+                    }
+                });
+            } catch (err) {
+                console.error('Failed to save logo', err);
+            }
+        };
+        reader.readAsDataURL(file);
+        e.currentTarget.value = '';
+    };
+
     const handleInvoiceSettingsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (!settings) return;
         const { name, value } = e.target;
@@ -95,7 +126,10 @@ const Settings: React.FC = () => {
     const handleExport = async () => {
         try {
             const data = await api.exportDb();
-            const blob = new Blob([data], { type: 'application/x-sqlite3' });
+            const ab = new ArrayBuffer(data.length);
+            const view = new Uint8Array(ab);
+            view.set(data);
+            const blob = new Blob([ab], { type: 'application/x-sqlite3' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -209,8 +243,15 @@ const Settings: React.FC = () => {
                     <h2 className="text-xl font-semibold mb-4">Invoice Customization</h2>
                      <div className="space-y-4">
                         <div>
-                            <label htmlFor="logoUrl" className="block text-sm font-medium text-muted-foreground mb-1">Logo URL</label>
-                            <input id="logoUrl" name="logoUrl" value={settings.companyDetails.logoUrl} onChange={handleCompanyDetailsChange} className="p-2 border rounded w-full bg-background border-input" placeholder="https://your-domain.com/logo.png"/>
+                            <label className="block text-sm font-medium text-muted-foreground mb-1">Company Logo</label>
+                            {settings.companyDetails.logoUrl ? (
+                                <div className="flex items-center gap-3 mb-2">
+                                    <img src={settings.companyDetails.logoUrl} alt="Logo preview" className="h-12 w-12 object-contain border rounded bg-background" />
+                                    <button type="button" onClick={() => setSettings(prev => ({...prev!, companyDetails: {...prev!.companyDetails, logoUrl: ''}}))} className="text-xs text-destructive hover:underline">Remove</button>
+                                </div>
+                            ) : null}
+                            <input type="file" accept="image/*" onChange={handleLogoUpload} className="p-2 border rounded w-full bg-background border-input" />
+                            <p className="text-xs text-muted-foreground mt-1">PNG/JPG, recommended ≤ 512KB. Stored locally.</p>
                         </div>
                          <div>
                             <label htmlFor="accentColor" className="block text-sm font-medium text-muted-foreground mb-1">Invoice Accent Color</label>

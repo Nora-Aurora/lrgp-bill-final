@@ -53,7 +53,7 @@ const init = async () => {
             console.log("Creating new database...");
             _db = new SQL.Database();
             createTables();
-            // seedDatabase();
+            seedDatabase();
             await saveDbToIdb(_db);
         }
         isInitialized = true;
@@ -75,37 +75,37 @@ const createTables = () => {
   `);
 };
 
-// const seedDatabase = () => {
-//     console.log("Seeding database with initial data...");
-//     _db.exec("BEGIN TRANSACTION;");
-//     try {
-//         _db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(['companyDetails', JSON.stringify(DUMMY_COMPANY_DETAILS)]);
-//         _db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(['invoiceSettings', JSON.stringify(DUMMY_INVOICE_SETTINGS)]);
+const seedDatabase = () => {
+    console.log("Seeding database with initial data...");
+    _db.exec("BEGIN TRANSACTION;");
+    try {
+        _db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(['companyDetails', JSON.stringify(DUMMY_COMPANY_DETAILS)]);
+        _db.prepare("INSERT INTO settings (key, value) VALUES (?, ?)").run(['invoiceSettings', JSON.stringify(DUMMY_INVOICE_SETTINGS)]);
 
-//         const productStmt = _db.prepare("INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?,?,?)");
-//         DUMMY_PRODUCTS.forEach(p => productStmt.run([p.id, p.name, p.sku, p.hsnCode, p.category, p.salePrice, p.purchasePrice, p.taxRate, p.stock, p.reorderPoint, p.isService ? 1 : 0]));
+        // const productStmt = _db.prepare("INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+        // DUMMY_PRODUCTS.forEach(p => productStmt.run([p.id, p.name, p.sku, p.hsnCode, p.category, p.salePrice, p.purchasePrice, p.taxRate, p.stock, p.reorderPoint, p.isService ? 1 : 0]));
         
-//         const customerStmt = _db.prepare("INSERT INTO customers VALUES (?,?,?,?,?,?,?)");
-//         DUMMY_CUSTOMERS.forEach(c => customerStmt.run([c.id, c.name, c.email, c.phone, JSON.stringify(c.billingAddress), JSON.stringify(c.shippingAddress), c.gstin]));
+        // const customerStmt = _db.prepare("INSERT INTO customers VALUES (?,?,?,?,?,?,?)");
+        // DUMMY_CUSTOMERS.forEach(c => customerStmt.run([c.id, c.name, c.email, c.phone, JSON.stringify(c.billingAddress), JSON.stringify(c.shippingAddress), c.gstin]));
         
-//         const supplierStmt = _db.prepare("INSERT INTO suppliers VALUES (?,?,?,?,?,?)");
-//         DUMMY_SUPPLIERS.forEach(s => supplierStmt.run([s.id, s.name, s.email, s.phone, JSON.stringify(s.address), s.gstin]));
+        // const supplierStmt = _db.prepare("INSERT INTO suppliers VALUES (?,?,?,?,?,?)");
+        // DUMMY_SUPPLIERS.forEach(s => supplierStmt.run([s.id, s.name, s.email, s.phone, JSON.stringify(s.address), s.gstin]));
 
-//         const salesStmt = _db.prepare("INSERT INTO sales_invoices VALUES (?,?,?,?,?,?,?,?)");
-//         DUMMY_SALES_INVOICES.forEach(i => salesStmt.run([i.id, i.invoiceNumber, i.customerId, i.invoiceDate, i.dueDate, JSON.stringify(i.items), i.status, i.amountPaid || 0]));
+        // const salesStmt = _db.prepare("INSERT INTO sales_invoices VALUES (?,?,?,?,?,?,?,?)");
+        // DUMMY_SALES_INVOICES.forEach(i => salesStmt.run([i.id, i.invoiceNumber, i.customerId, i.invoiceDate, i.dueDate, JSON.stringify(i.items), i.status, i.amountPaid || 0]));
         
-//         const quoteStmt = _db.prepare("INSERT INTO quotations VALUES (?,?,?,?,?,?,?)");
-//         DUMMY_QUOTATIONS.forEach(q => quoteStmt.run([q.id, q.quotationNumber, q.customerId, q.quoteDate, q.expiryDate, JSON.stringify(q.items), q.status]));
+        // const quoteStmt = _db.prepare("INSERT INTO quotations VALUES (?,?,?,?,?,?,?)");
+        // DUMMY_QUOTATIONS.forEach(q => quoteStmt.run([q.id, q.quotationNumber, q.customerId, q.quoteDate, q.expiryDate, JSON.stringify(q.items), q.status]));
 
-//         const purchaseStmt = _db.prepare("INSERT INTO purchase_invoices VALUES (?,?,?,?,?,?,?)");
-//         DUMMY_PURCHASE_INVOICES.forEach(p => purchaseStmt.run([p.id, p.invoiceNumber, p.supplierId, p.purchaseDate, JSON.stringify(p.items), p.status, p.amountPaid || 0]));
+        // const purchaseStmt = _db.prepare("INSERT INTO purchase_invoices VALUES (?,?,?,?,?,?,?)");
+        // DUMMY_PURCHASE_INVOICES.forEach(p => purchaseStmt.run([p.id, p.invoiceNumber, p.supplierId, p.purchaseDate, JSON.stringify(p.items), p.status, p.amountPaid || 0]));
 
-//         _db.exec("COMMIT;");
-//     } catch (e) {
-//         console.error("Seeding failed:", e);
-//         _db.exec("ROLLBACK;");
-//     }
-// };
+        _db.exec("COMMIT;");
+    } catch (e) {
+        console.error("Seeding failed:", e);
+        _db.exec("ROLLBACK;");
+    }
+};
 
 const parseJsonFields = (obj: any, fields: string[]) => {
     if (!obj) return obj;
@@ -131,20 +131,52 @@ const importDb = async (data: Uint8Array) => {
 // --- Stores ---
 const settingsStore = {
     async get(): Promise<AppSettings> {
-        const companyDetails = JSON.parse(_db.prepare("SELECT value FROM settings WHERE key = ?").getAsObject(['companyDetails']).value);
-        const invoiceSettings = JSON.parse(_db.prepare("SELECT value FROM settings WHERE key = ?").getAsObject(['invoiceSettings']).value);
-        return { companyDetails, invoiceSettings };
+        // Ensure table exists in case of legacy DBs
+        _db.exec(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);`);
+
+        const companyRow = _db.prepare("SELECT value FROM settings WHERE key = ?").getAsObject(['companyDetails']);
+        const invoiceRow = _db.prepare("SELECT value FROM settings WHERE key = ?").getAsObject(['invoiceSettings']);
+
+        let companyDetails;
+        let invoiceSettings;
+
+        try {
+            companyDetails = companyRow && (companyRow as any).value ? JSON.parse((companyRow as any).value as string) : DUMMY_COMPANY_DETAILS;
+        } catch (e) {
+            console.warn('Invalid companyDetails JSON in DB. Resetting to defaults.');
+            companyDetails = DUMMY_COMPANY_DETAILS;
+        }
+
+        try {
+            invoiceSettings = invoiceRow && (invoiceRow as any).value ? JSON.parse((invoiceRow as any).value as string) : DUMMY_INVOICE_SETTINGS;
+        } catch (e) {
+            console.warn('Invalid invoiceSettings JSON in DB. Resetting to defaults.');
+            invoiceSettings = DUMMY_INVOICE_SETTINGS;
+        }
+
+        // If any missing, persist defaults so subsequent reads are fast
+        _db.exec('BEGIN TRANSACTION;');
+        try {
+            _db.prepare("REPLACE INTO settings (key, value) VALUES (?,?)").run(['companyDetails', JSON.stringify(companyDetails)]);
+            _db.prepare("REPLACE INTO settings (key, value) VALUES (?,?)").run(['invoiceSettings', JSON.stringify(invoiceSettings)]);
+            _db.exec('COMMIT;');
+            await saveDbToIdb(_db);
+        } catch (e) {
+            _db.exec('ROLLBACK;');
+        }
+
+        return { companyDetails, invoiceSettings } as AppSettings;
     },
     async update(data: Partial<AppSettings>): Promise<AppSettings> {
         const current = await this.get();
         const newSettings = {
-            companyDetails: {...current.companyDetails, ...data.companyDetails},
-            invoiceSettings: {...current.invoiceSettings, ...data.invoiceSettings},
+            companyDetails: { ...current.companyDetails, ...(data.companyDetails || {}) },
+            invoiceSettings: { ...current.invoiceSettings, ...(data.invoiceSettings || {}) },
         };
         _db.prepare("REPLACE INTO settings (key, value) VALUES (?,?)").run(['companyDetails', JSON.stringify(newSettings.companyDetails)]);
         _db.prepare("REPLACE INTO settings (key, value) VALUES (?,?)").run(['invoiceSettings', JSON.stringify(newSettings.invoiceSettings)]);
         await saveDbToIdb(_db);
-        return newSettings;
+        return newSettings as AppSettings;
     }
 };
 
